@@ -1,0 +1,4 @@
+include README.md
+include LICENSE
+include requirements*.txt
+include dks/base/roots_100000.npy

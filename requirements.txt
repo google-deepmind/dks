@@ -1,0 +1,4 @@
+# It's possible that these could be made more lenient
+numpy>=1.16.0
+scipy>=1.2.1
+autograd>=1.3

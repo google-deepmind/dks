@@ -1,0 +1,2 @@
+# It's possible that this could be made more lenient
+torch>=1.0.0
