@@ -564,7 +564,12 @@ def get_transformed_activations(
 
   See the DKS paper (https://arxiv.org/abs/2110.01765) and the TAT paper
   (https://openreview.net/forum?id=U0k7XNTiFEq) for details about what these
-  are, how they are computed, and what their parameters mean.
+  are, how they are computed, and what their parameters mean. A procedure to
+  compute the "maximal slope function" is given in the section titled "Summary
+  of our method" of the DKS paper. Procedures to compute the "maximal curvature
+  function", and the "subnet maximizing function", are given in the appendix
+  section titled "Additional details and pseudocode for activation function
+  transformations" of the TAT paper.
 
   Note that if you are using the JAX, PyTorch, or TensorFlow frameworks, you
   probably want to be using the version of get_transformed_activations() in the
@@ -604,21 +609,22 @@ def get_transformed_activations(
       corresponds to "tau" from the paper), and defaults to 0.3. If
       ``tat_params`` is passed as None, it defaults to the empty dictionary (so
       that the parameters will use their default values). (Default: None)
-    max_slope_func: A callable which computes the maximal slope function, as
-      defined in the DKS paper. It should take a single argument representing
-      the slope of each local C map at ``c=1``. If this is required (i.e. when
-      using DKS) but is passed as None, it will be generated using
-      ``subnet_max_func`` if possible. (Default: None)
-    max_curv_func: A callable which computes the maximal curvature function. It
-      should take a single parameter representing the second derivative of each
-      local C map at c=1. If this is required (i.e. when using TAT with smooth
-      activation functions) but is passed as None, it will be generated using
-      ``subnet_max_func`` if possible. (Default: None)
-    subnet_max_func: A callable which computes the subnetwork maximizing
-      function of the network (denoted ``M_{f,r}(x)`` in the TAT paper). It
-      should take two arguments: the input value ``x``, and a callable
-      ``r_func`` which maps a float to a float. This is required when using TAT
-      with Leaky ReLUs. (Default: None)
+    max_slope_func: A callable which computes the "maximal slope function" of
+      the network, as defined in the DKS paper. It should take a single argument
+      representing the slope of each local C map at ``c=1``. If this is required
+      (i.e. when using DKS) but passed as None, it will be generated using
+      ``subnet_max_func`` when possible. (Default: None)
+    max_curv_func: A callable which computes the "maximal curvature function" of
+      the network, as defined in the TAT paper. It should take a single
+      parameter representing the second derivative of each local C map at c=1.
+      If this is required (i.e. when using TAT with smooth activation functions)
+      but is passed as None, it will be generated using ``subnet_max_func`` when
+      possible. (Default: None)
+    subnet_max_func: A callable which computes the "subnetwork maximizing
+      function" of the network, as defined in the TAT paper (and denoted
+      ``M_{f,r}(x)``). It should take two arguments: the input value ``x``, and
+      a callable ``r_func`` which maps a float to a float. This is required when
+      using TAT with Leaky ReLUs. (Default: None)
     activation_getter: A callable which takes a string name for an activation
       function and returns the (untransformed) activation function corresponding
       to this name. Defaults to one returning activation functions in NumPy

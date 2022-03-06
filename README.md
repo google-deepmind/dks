@@ -4,11 +4,11 @@
 # Official Python package for Deep Kernel Shaping (DKS) and Tailored Activation Transformations (TAT)
 
 This Python package implements the activation function transformations and
-weight initializations used Deep Kernel Shaping (DKS) and Tailored Activation
+weight initializations used in Deep Kernel Shaping (DKS) and Tailored Activation
 Transformations (TAT). DKS and TAT, which were introduced in the [DKS paper] and
-[TAT paper], are methods constructing/transforming neural networks to make them
-much easier to train. For example, these methods can be used in conjunction with
-K-FAC to train deep vanilla deep convnets (without skip connections or
+[TAT paper], are methods for constructing/transforming neural networks to make
+them much easier to train. For example, these methods can be used in conjunction
+with K-FAC to train deep vanilla deep convnets (without skip connections or
 normalization layers) as fast as standard ResNets of the same depth.
 
 The package supports the JAX, PyTorch, and TensorFlow tensor programming
@@ -23,43 +23,51 @@ from Github will be rejected. Instead, please email us if you find a bug.
 ## Usage
 
 For each of the supported tensor programming frameworks, there is a
-corresponding directory/subpackage which handles the activation function
-transformations and weight initializations. It's up to the user to import these
-and use them appropriately within their model code. Activation functions are
-transformed by the function `get_transformed_activations()` in module
-`activation_transform` of the appropriate subpackage. Weight sampling is done
-using functions inside of the module `parameter_sampling_functions` of said
-subpackage.
+corresponding subpackage which handles the activation function transformations
+and weight initializations. (These are `dks.jax`, `dks.pytorch`, and
+`dks.tensorflow`.) It's up to the user to import these and use them
+appropriately within their model code. Activation functions are transformed by
+the function `get_transformed_activations()` in the module
+`activation_transform` of the appropriate subpackage. Sampling initial
+parameters is done using functions inside of the module
+`parameter_sampling_functions` of said subpackage. Note that in order to avoid
+having to import all of the tensor programming frameworks, the user is required
+to individually import whatever framework subpackage they want. e.g. `import
+dks.jax`. Meanwhile, `import dks` won't actually do anything.
 
-In addition to using these functions, the user is responsble for ensuring that
-their model meets the architectural requirements of DKS/TAT, and for converting
-any weighted sums in their model to "normalized sums" (which are weighted sums
-whoses non-trainable weights have a sum of squares equal to 1). This package
-doesn't currently include an implementation of Per-Location Normalization (PLN)
-data pre-processing. While not required for CIFAR or ImageNet, PLN could
-potentially be important for other datasets. See the section titled "Summary of
-our method" in the [DKS paper] for more details about the requirements and
-execution steps of DKS. To read about the additional requirements of TAT, such
-as the subset maximizing function, refer to Appendix B of the [TAT paper].
+`get_transformed_activations()` requires the user to pass either the "maximal
+slope function" for DKS, the "subnet maximizing function" for TAT with Leaky
+ReLUs, or the "maximal curvature function" for TAT with smooth activation
+functions. (The subnet maximizing function also handles DKS and TAT with smooth
+activations.) These are special functions that encode information about the
+particular model architecture. See the section titled "Summary of our method" of
+the [DKS paper] for a procedure to construct the maximal slope function for a
+given model, or the appendix section titled "Additional details and pseudocode
+for activation function transformations" of the [TAT paper] for procedures to
+construct the other two functions.
 
-Note that ReLUs are only partially supported by DKS, and unsupported by TAT, and
-their use is *highly* discouraged. Instead, one should use Leaky ReLUs, which
+In addition to these things, the user is responsible for ensuring that their
+model meets the architectural requirements of DKS/TAT, and for converting any
+weighted sums into "normalized sums" (which are weighted sums whose
+non-trainable weights have a sum of squares equal to 1). See the section titled
+"Summary of our method" of the [DKS paper] for more details.
+
+Note that this package doesn't currently include an implementation of
+Per-Location Normalization (PLN) data pre-processing. While not required for
+CIFAR or ImageNet, PLN could potentially be important for other datasets. Also
+note that ReLUs are only partially supported by DKS, and unsupported by TAT, and
+so their use is *highly* discouraged. Instead, one should use Leaky ReLUs, which
 are fully supported by DKS, and work especially well with TAT.
-
-Note that in order to avoid having to import all of the tensor programming
-frameworks, the user is required to individually import whatever framework
-subpackage they want. e.g. `import dks.jax`. Meanwhile, `import dks` won't
-actually do anything.
 
 ## Example
 
-`dks.examples.haiku.modified_resnet` is a Haiku ResNet model which has been
+`dks.examples.haiku.modified_resnet` is a [Haiku] ResNet model which has been
 modified as described in the DKS/TAT papers, and includes support for both DKS
-and TAT. By default, it removes the normalization layers and skip connections
-found in standard ResNets, making it a "vanilla network". It can be used as an
-instructive example for how to build DKS/TAT models using this package. See the
-section titled "Application to various modified ResNets" from the [DKS paper]
-for more details.
+and TAT. When constructed with its default arguments, it removes the
+normalization layers and skip connections found in standard ResNets, making it a
+"vanilla network". It can be used as an instructive example for how to build
+DKS/TAT models using this package. See the section titled "Application to
+various modified ResNets" from the [DKS paper] for more details.
 
 ## Installation
 
@@ -75,7 +83,7 @@ or
 pip install -e git+https://github.com/deepmind/dks.git#egg=dks[<extras>]
 ```
 
-or from PyPI with
+Or from PyPI with
 
 ```bash
 pip install dks
@@ -87,7 +95,7 @@ or
 pip install dks[<extras>]
 ```
 
-Here `<extras>` is a common-separated list (with no spaces) of strings that can
+Here `<extras>` is a common-separated list of strings (with no spaces) that can
 be passed to install extra dependencies for different tensor programming
 frameworks. Valid strings are `jax`, `tf`, and `pytorch`. So for example, to
 install `dks` with the extra requirements for JAX and PyTorch, one does
@@ -126,3 +134,4 @@ This is not an official Google product.
 
 [DKS paper]: https://arxiv.org/abs/2110.01765
 [TAT paper]: https://openreview.net/forum?id=U0k7XNTiFEq
+[Haiku]: https://github.com/deepmind/dm-haiku

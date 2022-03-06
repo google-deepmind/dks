@@ -35,6 +35,8 @@ def _subnet_max_func(x, r_fn, shortcut_weight=0.6):
 
   blocks_per_group = (3, 4, 23, 3)
 
+  res_branch_subnetwork_x = r_fn(r_fn(r_fn(x)))
+
   for i in range(4):
     for j in range(blocks_per_group[i]):
 
@@ -46,7 +48,7 @@ def _subnet_max_func(x, r_fn, shortcut_weight=0.6):
 
   x = r_fn(x)
 
-  return x
+  return max(x, res_branch_subnetwork_x)
 
 
 class ActivationTransformTest(absltest.TestCase):
