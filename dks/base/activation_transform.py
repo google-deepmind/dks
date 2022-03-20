@@ -254,8 +254,8 @@ def _solve_for_activation_params(
       assert pname not in params
       params[pname] = p[i]
 
-    # Here we compute output_scale, and sometimes also output_shift, separately
-    # instead of taking them the vector.
+    # We directly compute output_scale, and sometimes also output_shift, instead
+    # of taking them from the parameter vector.
     output_shift, output_scale = _compute_output_params(
         _transform_activation(_get_numpy_activation_function(name), params),
         local_c_val_0_target)
@@ -470,7 +470,7 @@ def _get_activations_params(
   elif method == "TAT" and "leaky_relu" not in activation_names:
 
     if "relu" in activation_names:
-      raise ValueError("Standard ReLU not supported with TAT. Use leaky "
+      raise ValueError("Standard ReLU is not supported with TAT. Use leaky "
                        "ReLU instead.")
 
     c_curve_target = tat_params["c_curve_target"]
@@ -623,7 +623,7 @@ def get_transformed_activations(
     subnet_max_func: A callable which computes the "subnetwork maximizing
       function" of the network, as defined in the TAT paper (and denoted
       ``M_{f,r}(x)``). It should take two arguments: the input value ``x``, and
-      a callable ``r_func`` which maps a float to a float. This is required when
+      a callable ``r_fn`` which maps a float to a float. This is required when
       using TAT with Leaky ReLUs. (Default: None)
     activation_getter: A callable which takes a string name for an activation
       function and returns the (untransformed) activation function corresponding
