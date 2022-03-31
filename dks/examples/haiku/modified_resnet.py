@@ -393,11 +393,11 @@ class ModifiedResNet(hk.Module):
         the activation function. Can be ``DKS``, ``TAT``, or ``untransformed``.
         Defaults to ``DKS``.
       dks_params: A dictionary containing the parameters to use for DKS. See
-        activation_transform.get_transformed_activations for more details.
-        Defaults to ``None``.
+        ``dks.base.activation_transform.get_transformed_activations`` for more
+        details. Defaults to ``None``.
       tat_params: A dictionary containing the parameters to use for TAT. See
-        activation_transform.get_transformed_activations for more details.
-        Defaults to ``None``.
+        ``dks.base.activation_transform.get_transformed_activations`` for more
+        details. Defaults to ``None``.
       name: Name of the Sonnet module.
     """
     super().__init__(name=name)
