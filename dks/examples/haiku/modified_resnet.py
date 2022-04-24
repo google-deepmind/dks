@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-""""A "modified ResNet model" in Haiku with support for both DKS and TAT."""
+"""A "modified ResNet model" in Haiku with support for both DKS and TAT."""
 
 import math
 from typing import Any, Callable, Mapping, Optional, Sequence, Union
