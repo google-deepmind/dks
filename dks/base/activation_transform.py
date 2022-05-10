@@ -246,7 +246,7 @@ def _solve_for_activation_params(
     opt_params = ("input_scale", "input_shift", "output_shift")
 
   def make_params_from_pvector(p):
-    """Make a dictionary of activation parameters value from a given vector."""
+    """Make a dictionary of activation parameters from a given vector."""
 
     params = constant_params.copy()
 
