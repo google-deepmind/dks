@@ -522,14 +522,11 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight):
   bottleneck = ModifiedResNet.CONFIGS[depth]["bottleneck"]
   use_projection = ModifiedResNet.CONFIGS[depth]["use_projection"]
 
-  res_branch_subnetwork_x = r_fn(r_fn(r_fn(x)))
+  res_branch_subnetwork_x = r_fn(r_fn(r_fn(x))) if bottleneck else r_fn(r_fn(x))
 
   for i in range(4):
     for j in range(blocks_per_group[i]):
-      if bottleneck:
-        res_x = r_fn(r_fn(r_fn(x)))
-      else:
-        res_x = r_fn(r_fn(x))
+      res_x = r_fn(r_fn(r_fn(x))) if bottleneck else r_fn(r_fn(x))
 
       shortcut_x = r_fn(x) if (j == 0 and use_projection[i]) else x
 
