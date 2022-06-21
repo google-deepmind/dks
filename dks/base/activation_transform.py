@@ -586,7 +586,8 @@ def get_transformed_activations(
       getters in this package (for each framework) currently support the
       following names: "tanh", "softplus", "leaky_relu", "relu" (not
       recommended; use "leaky_relu" instead), "selu", "elu", "swish", "sigmoid",
-      "erf", "bentid", "atan", "asinh", "square", and "softsign".
+      "erf", "bentid", "atan", "asinh", "square", "softsign", "gelu", and
+      "gelu_exact".
     method: A string representing the method used to transform the activation
       functions. Can be "DKS", "TAT", or "untransformed". The latter choice
       will return activation functions without any transformations.

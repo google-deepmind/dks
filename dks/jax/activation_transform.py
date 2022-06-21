@@ -26,6 +26,10 @@ def _get_jax_activation_function(name):
     return lambda x: (jnp.sqrt(jnp.square(x) + 1.) - 1.) / 2. + x
   elif name == "softsign":
     return jax.nn.soft_sign
+  elif name == "gelu":
+    return lambda x: jax.nn.gelu(x, approximate=True)
+  elif name == "gelu_exact":
+    return lambda x: jax.nn.gelu(x, approximate=False)
   elif hasattr(jax.lax, name):
     return getattr(jax.lax, name)
   elif hasattr(jax.nn, name):

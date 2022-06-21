@@ -509,10 +509,11 @@ class ModifiedResNet(hk.Module):
     return self.logits(out)
 
   def subnet_max_func(self, x, r_fn):
-    return subnet_max_func(x, r_fn, self.depth, self.shortcut_weight)
+    return subnet_max_func(x, r_fn, self.depth, self.shortcut_weight,
+                           resnet_v2=self.resnet_v2)
 
 
-def subnet_max_func(x, r_fn, depth, shortcut_weight):
+def subnet_max_func(x, r_fn, depth, shortcut_weight, resnet_v2=True):
   """The subnetwork maximizing function of the modified ResNet model."""
 
   # See Appendix B of the TAT paper for a step-by-step procedure for how
@@ -522,16 +523,29 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight):
   bottleneck = ModifiedResNet.CONFIGS[depth]["bottleneck"]
   use_projection = ModifiedResNet.CONFIGS[depth]["use_projection"]
 
-  res_branch_subnetwork_x = r_fn(r_fn(r_fn(x))) if bottleneck else r_fn(r_fn(x))
+  if bottleneck and resnet_v2:
+    res_fn = lambda z: r_fn(r_fn(r_fn(z)))
+  elif (not bottleneck and resnet_v2) or (bottleneck and not resnet_v2):
+    res_fn = lambda z: r_fn(r_fn(z))
+  else:
+    res_fn = r_fn
+
+  res_branch_subnetwork = res_fn(x)
 
   for i in range(4):
     for j in range(blocks_per_group[i]):
-      res_x = r_fn(r_fn(r_fn(x))) if bottleneck else r_fn(r_fn(x))
+      res_x = res_fn(x)
 
-      shortcut_x = r_fn(x) if (j == 0 and use_projection[i]) else x
+      if j == 0 and use_projection[i] and resnet_v2:
+        shortcut_x = r_fn(x)
+      else:
+        shortcut_x = x
 
       x = (shortcut_weight**2 * shortcut_x + (1.0 - shortcut_weight**2) * res_x)
 
+      if not resnet_v2:
+        x = r_fn(x)
+
   x = r_fn(x)
 
-  return max(x, res_branch_subnetwork_x)
+  return max(x, res_branch_subnetwork)

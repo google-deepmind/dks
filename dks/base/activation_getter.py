@@ -52,6 +52,17 @@ def _leaky_relu(x, negative_slope=0.01):
   return negative_slope * is_neg * x + is_not_neg * x
 
 
+# approximate GELU adapted from official JAX implementation:
+def _gelu(x):
+  cdf = 0.5 * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * (x ** 3))))
+  return x * cdf
+
+
+# exact GELU adapted from official JAX implementation:
+def _gelu_exact(x):
+  return x * (sp.special.erf(x / np.sqrt(2.0)) + 1) / 2
+
+
 _ACTIVATION_TABLE = {
     "tanh": np.tanh,
     "sigmoid": _sigmoid,
@@ -67,6 +78,8 @@ _ACTIVATION_TABLE = {
     "square": lambda x: x**2,
     "softsign": lambda x: x / (1 + np.abs(x)),
     "leaky_relu": _leaky_relu,
+    "gelu": _gelu,
+    "gelu_exact": _gelu_exact,
 }
 
 

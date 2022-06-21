@@ -32,6 +32,10 @@ def _get_tf_activation_function(name):
   elif name == "leaky_relu":
     return lambda x, negative_slope=0.01: tf.nn.leaky_relu(  # pylint: disable=g-long-lambda
         x, alpha=negative_slope)
+  elif name == "gelu":
+    return lambda x: tf.nn.gelu(x, approximate=True)
+  elif name == "gelu_exact":
+    return lambda x: tf.nn.gelu(x, approximate=False)
   elif hasattr(tf.nn, name):
     return getattr(tf.nn, name)
   else:

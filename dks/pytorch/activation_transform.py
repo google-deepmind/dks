@@ -14,9 +14,18 @@
 
 """PyTorch implementation of the activation transformations used in DKS/TAT."""
 
+import math
+
 from dks.base import activation_transform
 import torch
 import torch.nn.functional as tfunc
+
+
+# PyTorch doesn't seem to currently support the commonly used GELU approximation
+# in its public-facing API (as of June 2022) so we implement it here instead.
+def _gelu_approx(x):
+  return (0.5 * x * (1.0 + torch.tanh(math.sqrt(2.0 / math.pi) *
+                                      (x + 0.044715 * torch.pow(x, 3)))))
 
 
 def _get_pytorch_activation_function(name):
@@ -24,6 +33,10 @@ def _get_pytorch_activation_function(name):
 
   if name == "bentid":
     return lambda x: (torch.sqrt(torch.square(x) + 1.) - 1.) / 2. + x
+  elif name == "gelu":
+    return _gelu_approx
+  elif name == "gelu_exact":
+    return tfunc.gelu
   elif hasattr(tfunc, name):
     return getattr(tfunc, name)
   elif hasattr(torch, name):

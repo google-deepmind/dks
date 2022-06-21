@@ -22,6 +22,7 @@ from dks.pytorch import activation_transform as activation_transform_pytorch
 from dks.tensorflow import activation_transform as activation_transform_tf
 
 import numpy as np
+from pkg_resources import parse_version
 import torch
 import tree
 
@@ -115,6 +116,16 @@ class ActivationTransformTest(absltest.TestCase):
           {"leaky_relu": {"output_scale": 1.196996549778802,
                           "negative_slope": 0.6291800290346146}})
 
+    check(("gelu", "gelu_exact"), "DKS",
+          {"gelu": {"input_scale": 0.07036271496383567,
+                    "input_shift": 0.2586837248593587,
+                    "output_shift": -0.15758328114374964,
+                    "output_scale": 20.249573305194307},
+           "gelu_exact": {"input_scale": 0.07043253126531114,
+                          "input_shift": 0.259489297927707,
+                          "output_shift": -0.15815378961903598,
+                          "output_scale": 20.21158902315857}})
+
   def _run_value_tests(self, module, to_framework, to_numpy, places):
     """Test that transformed activation functions compute the correct values."""
 
@@ -165,6 +176,13 @@ class ActivationTransformTest(absltest.TestCase):
            "softplus": [1.0374879504858856, 0.4374879504858857],
            "relu": [0.6, 0.0],
            "leaky_relu": [0.6, -0.006]})
+
+    # GELU support was added in PyTorch 1.2.0
+    if (to_framework != torch.tensor
+        or parse_version(torch.__version__) >= parse_version("1.2.0")):
+      check(("gelu", "gelu_exact"), "TAT",
+            {"gelu": [0.6922557817568101, -0.491992384704867],
+             "gelu_exact": [0.6922429517529013, -0.49198103131465193]})
 
   def test_transformed_activation_values_numpy(self):
     self._run_value_tests(
