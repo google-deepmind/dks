@@ -101,6 +101,16 @@ def _estimate_gaussian_mean(fn, order=_QUADRATURE_ORDER):
   return integral / np.sqrt(2*np.pi)
 
 
+def _estimate_2d_gaussian_mean(fn):
+  """Estimate the mean of a function fn(x, y) where x,y ~ N(0,1)."""
+
+  fn_weighted = lambda x, y: np.exp(-(x**2 + y**2) / 2) * fn(x, y)
+
+  integral, _ = sp_int.dblquad(fn_weighted, -10., 10., -10., 10., epsabs=0.0)
+
+  return integral / (2*np.pi)
+
+
 def _calc_c_map(activation, derivative_order=0, c=1.0, q_output=None):
   """Evaluate local C map value assuming an input q value of 1.
 
@@ -110,7 +120,7 @@ def _calc_c_map(activation, derivative_order=0, c=1.0, q_output=None):
     derivative_order: An integer giving the order of the derivative of the C map
       to take before evaluating it. (Default: 0)
     c: A float giving the input point at which to evaluate the C map. Must
-      be 0.0 or 1.0. (Default: 1.0)
+      be between -1.0 and 1.0. (Default: 1.0)
     q_output: Float or None giving the output q value associated with
       ``activation``, if this is known. If None this will be computed from
       scratch. (Default: None)
@@ -128,8 +138,12 @@ def _calc_c_map(activation, derivative_order=0, c=1.0, q_output=None):
     integral = _estimate_gaussian_mean(derivative)**2
   elif c == 1.0:
     integral = _estimate_gaussian_mean(lambda x: derivative(x)**2)
+  elif c >= -1.0 and c <= 1.0:
+    sqrt1mc2 = np.sqrt(1.0 - c**2)
+    integral = _estimate_2d_gaussian_mean(
+        lambda x, y: derivative(x) * derivative(c*x + sqrt1mc2*y))
   else:
-    raise NotImplementedError("Input c value must be 0.0 or 1.0.")
+    raise NotImplementedError("Input c value must be between -1.0 and 1.0.")
 
   if q_output is None:
     q_output = _estimate_gaussian_mean(lambda x: activation(x)**2)
