@@ -204,16 +204,16 @@ def _transform_activation(phi, params):
 
     # Note: DO NOT use += and *= below! Bad things will happen.
     if input_scale is not None:
-      x = x * input_scale
+      x = x * float(input_scale)
     if input_shift is not None:
-      x = x + input_shift
+      x = x + float(input_shift)
 
     x = phi(x, **params)
 
     if output_shift is not None:
-      x = x + output_shift
+      x = x + float(output_shift)
     if output_scale is not None:
-      x = x * output_scale
+      x = x * float(output_scale)
 
     return x
 
@@ -271,7 +271,8 @@ def _solve_for_activation_params(
     # We directly compute output_scale, and sometimes also output_shift, instead
     # of taking them from the parameter vector.
     output_shift, output_scale = _compute_output_params(
-        _transform_activation(_get_numpy_activation_function(name), params),
+        _transform_activation(
+            _get_numpy_activation_function(name), params),
         local_c_val_0_target)
 
     if output_shift is not None:
@@ -573,7 +574,8 @@ def _get_activations_params(
 def get_transformed_activations(
     activation_names, method="DKS", dks_params=None, tat_params=None,
     max_slope_func=None, max_curv_func=None, subnet_max_func=None,
-    activation_getter=_get_numpy_activation_function):
+    activation_getter=_get_numpy_activation_function,
+):
   """Gets transformed activation functions using the DKS or TAT method.
 
   See the DKS paper (https://arxiv.org/abs/2110.01765) and the TAT paper

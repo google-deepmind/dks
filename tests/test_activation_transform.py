@@ -15,14 +15,14 @@
 """Tests the activation function transform modules for each framework."""
 
 from absl.testing import absltest
-
 from dks.base import activation_transform as activation_transform_numpy
 from dks.jax import activation_transform as activation_transform_jax
 from dks.pytorch import activation_transform as activation_transform_pytorch
 from dks.tensorflow import activation_transform as activation_transform_tf
-
+import jax.numpy as jnp
 import numpy as np
 from pkg_resources import parse_version
+import tensorflow as tf
 import torch
 import tree
 
@@ -186,11 +186,11 @@ class ActivationTransformTest(absltest.TestCase):
 
   def test_transformed_activation_values_numpy(self):
     self._run_value_tests(
-        activation_transform_numpy, lambda x: x, lambda x: x, 8)
+        activation_transform_numpy, np.asarray, lambda x: x, 8)
 
   def test_transformed_activation_values_jax(self):
     self._run_value_tests(
-        activation_transform_jax, lambda x: x, lambda x: x, 5)
+        activation_transform_jax, jnp.asarray, np.asarray, 5)
 
   def test_transformed_activation_values_pytorch(self):
     self._run_value_tests(
@@ -199,7 +199,7 @@ class ActivationTransformTest(absltest.TestCase):
 
   def test_transformed_activation_values_tensorflow(self):
     self._run_value_tests(
-        activation_transform_tf, lambda x: x, lambda x: x.numpy(), 5)
+        activation_transform_tf, tf.convert_to_tensor, lambda x: x.numpy(), 5)
 
 
 if __name__ == "__main__":
