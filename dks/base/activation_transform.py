@@ -388,8 +388,15 @@ def _solve_increasing(fn, target, input_, min_, max_, tol=1e-8, max_eval=100):
         input_ = 0.5 * (input_ + max_)
 
   raise ValueError(f"Maximum evaluations ({max_eval}) exceeded while searching "
-                   "for solution. This is probably due the specified targets "
-                   "being unachievable for the given architecture.")
+                   "for solution. This is probably due the specified target "
+                   "being unachievable for the given architecture. For example,"
+                   " a Leaky-ReLU MLP of only a few layers may not be able "
+                   "to achieve the default C(0) target of 0.9 under TAT. "
+                   "Intuitively, this is because a shallow network cannot be "
+                   "made sufficiently nonlinear with such activation functions."
+                   " The solution to this would be to either use a smaller "
+                   "value for the C(0) target (corresponding to a more linear "
+                   "model), or to a use a deeper architecture.")
 
 
 def _compute_local_c_slope_1_target(max_slope_func, target_value):
