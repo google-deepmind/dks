@@ -15,4 +15,5 @@
 """Subpackage for Tensorflow."""
 
 from dks.tensorflow import activation_transform
+from dks.tensorflow import data_preprocessing
 from dks.tensorflow import parameter_sampling_functions

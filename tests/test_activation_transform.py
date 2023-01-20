@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests the activation function transform modules for each framework."""
+"""Tests the activation function transform module for each framework."""
 
 from absl.testing import absltest
 from dks.base import activation_transform as activation_transform_numpy

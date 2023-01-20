@@ -15,5 +15,6 @@
 """Subpackage for JAX."""
 
 from dks.jax import activation_transform
+from dks.jax import data_preprocessing
 from dks.jax import haiku_initializers
 from dks.jax import parameter_sampling_functions

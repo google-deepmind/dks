@@ -47,12 +47,15 @@ class BlockV1(hk.Module):
       w_init: Optional[Any],
       name: Optional[str] = None,
   ):
+
     super().__init__(name=name)
+
     self.use_projection = use_projection
     self.use_batch_norm = use_batch_norm
     self.shortcut_weight = shortcut_weight
 
     if self.use_projection and self.shortcut_weight != 0.0:
+
       self.proj_conv = hk.Conv2D(
           output_channels=channels,
           kernel_shape=1,
@@ -61,11 +64,13 @@ class BlockV1(hk.Module):
           with_bias=not use_batch_norm,
           padding="SAME",
           name="shortcut_conv")
+
       if use_batch_norm:
         self.proj_batchnorm = hk.BatchNorm(
             name="shortcut_batchnorm", **BN_CONFIG)
 
     channel_div = 4 if bottleneck else 1
+
     conv_0 = hk.Conv2D(
         output_channels=channels // channel_div,
         kernel_shape=1 if bottleneck else 3,
@@ -87,8 +92,10 @@ class BlockV1(hk.Module):
     layers = (conv_0, conv_1)
 
     if use_batch_norm:
+
       bn_0 = hk.BatchNorm(name="batchnorm_0", **BN_CONFIG)
       bn_1 = hk.BatchNorm(name="batchnorm_1", **BN_CONFIG)
+
       bn_layers = (bn_0, bn_1)
 
     if bottleneck:
@@ -112,23 +119,31 @@ class BlockV1(hk.Module):
     self.activation = activation
 
   def __call__(self, inputs, is_training, test_local_stats):
+
     out = shortcut = inputs
 
     if self.use_projection and self.shortcut_weight != 0.0:
+
       shortcut = self.proj_conv(shortcut)
+
       if self.use_batch_norm:
         shortcut = self.proj_batchnorm(shortcut, is_training, test_local_stats)
 
     for i, conv_i in enumerate(self.layers):
+
       out = conv_i(out)
+
       if self.use_batch_norm:
         out = self.bn_layers[i](out, is_training, test_local_stats)
+
       if i < len(self.layers) - 1:  # Don't apply activation on last layer
         out = self.activation(out)
 
     if self.shortcut_weight is None:
       return self.activation(out + shortcut)
+
     elif self.shortcut_weight != 0.0:
+
       return self.activation(
           math.sqrt(1 - self.shortcut_weight**2) * out +
           self.shortcut_weight * shortcut)
@@ -151,12 +166,15 @@ class BlockV2(hk.Module):
       w_init: Optional[Any],
       name: Optional[str] = None,
   ):
+
     super().__init__(name=name)
+
     self.use_projection = use_projection
     self.use_batch_norm = use_batch_norm
     self.shortcut_weight = shortcut_weight
 
     if self.use_projection and self.shortcut_weight != 0.0:
+
       self.proj_conv = hk.Conv2D(
           output_channels=channels,
           kernel_shape=1,
@@ -167,6 +185,7 @@ class BlockV2(hk.Module):
           name="shortcut_conv")
 
     channel_div = 4 if bottleneck else 1
+
     conv_0 = hk.Conv2D(
         output_channels=channels // channel_div,
         kernel_shape=1 if bottleneck else 3,
@@ -188,11 +207,14 @@ class BlockV2(hk.Module):
     layers = (conv_0, conv_1)
 
     if use_batch_norm:
+
       bn_0 = hk.BatchNorm(name="batchnorm_0", **BN_CONFIG)
       bn_1 = hk.BatchNorm(name="batchnorm_1", **BN_CONFIG)
+
       bn_layers = (bn_0, bn_1)
 
     if bottleneck:
+
       conv_2 = hk.Conv2D(
           output_channels=channels,
           kernel_shape=1,
@@ -205,8 +227,10 @@ class BlockV2(hk.Module):
       layers = layers + (conv_2,)
 
       if use_batch_norm:
+
         bn_2 = hk.BatchNorm(name="batchnorm_2", **BN_CONFIG)
         bn_layers += (bn_2,)
+
         self.bn_layers = bn_layers
 
     self.layers = layers
@@ -229,9 +253,11 @@ class BlockV2(hk.Module):
 
     if self.shortcut_weight is None:
       return x + shortcut
+
     elif self.shortcut_weight != 0.0:
       return math.sqrt(
           1 - self.shortcut_weight**2) * x + self.shortcut_weight * shortcut
+
     else:
       return x
 
@@ -272,13 +298,17 @@ class BlockGroup(hk.Module):
               name="block_%d" % (i)))
 
   def __call__(self, inputs, is_training, test_local_stats):
+
     out = inputs
+
     for block in self.blocks:
       out = block(out, is_training, test_local_stats)
+
     return out
 
 
 def check_length(length, value, name):
+
   if len(value) != length:
     raise ValueError(f"`{name}` must be of length 4 not {len(value)}")
 
@@ -481,12 +511,15 @@ class ModifiedResNet(hk.Module):
     self.logits = hk.Linear(num_classes, **logits_config)
 
   def __call__(self, inputs, is_training, test_local_stats=False):
+
     out = inputs
     out = self.initial_conv(out)
 
     if not self.resnet_v2:
+
       if self.use_batch_norm:
         out = self.initial_batchnorm(out, is_training, test_local_stats)
+
       out = self.activation(out)
 
     out = hk.max_pool(
@@ -525,8 +558,10 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight, resnet_v2=True):
 
   if bottleneck and resnet_v2:
     res_fn = lambda z: r_fn(r_fn(r_fn(z)))
+
   elif (not bottleneck and resnet_v2) or (bottleneck and not resnet_v2):
     res_fn = lambda z: r_fn(r_fn(z))
+
   else:
     res_fn = r_fn
 
@@ -534,6 +569,7 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight, resnet_v2=True):
 
   for i in range(4):
     for j in range(blocks_per_group[i]):
+
       res_x = res_fn(x)
 
       if j == 0 and use_projection[i] and resnet_v2:

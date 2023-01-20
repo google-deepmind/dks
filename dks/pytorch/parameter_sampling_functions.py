@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sampling functions for parameter initialization in DKS/TAT with PyTorch."""
+"""Parameter sampling functions for use with DKS/TAT in PyTorch."""
 
 import numpy as np
 import torch
@@ -31,7 +31,7 @@ def scaled_uniform_orthogonal_(weights, gain=1.0, delta=True):
 
   Should be used with a zeros initializer for the bias parameters for DKS/TAT.
 
-  See "Parameter distributions" section of DKS paper
+  See the "Parameter distributions" section of DKS paper
   (https://arxiv.org/abs/2110.01765) for a discussion of the SUO distribution
   and Delta initializations.
 
@@ -80,7 +80,7 @@ def scaled_uniform_orthogonal_(weights, gain=1.0, delta=True):
   else:
 
     # torch.nn.orthogonal_ flattens dimensions [1:] instead of [:-1], which is
-    # the opposite of what we want here. So we'll first compute version with
+    # the opposite of what we want here. So we'll first compute the version with
     # the first two dimensions swapped, and then we'll transpose at the end.
 
     shape = [shape[1], shape[0]] + shape[2:]

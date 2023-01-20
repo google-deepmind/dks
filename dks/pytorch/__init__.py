@@ -15,4 +15,5 @@
 """Subpackage for PyTorch."""
 
 from dks.pytorch import activation_transform
+from dks.pytorch import data_preprocessing
 from dks.pytorch import parameter_sampling_functions

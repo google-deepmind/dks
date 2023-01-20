@@ -3,13 +3,14 @@
 
 # Official Python package for Deep Kernel Shaping (DKS) and Tailored Activation Transformations (TAT)
 
-This Python package implements the activation function transformations and
-weight initializations used in Deep Kernel Shaping (DKS) and Tailored Activation
-Transformations (TAT). DKS and TAT, which were introduced in the [DKS paper] and
-[TAT paper], are methods for constructing/transforming neural networks to make
-them much easier to train. For example, these methods can be used in conjunction
-with K-FAC to train deep vanilla deep convnets (without skip connections or
-normalization layers) as fast as standard ResNets of the same depth.
+This Python package implements the activation function transformations, weight
+initializations, and dataset preprocessing used in Deep Kernel Shaping (DKS) and
+Tailored Activation Transformations (TAT). DKS and TAT, which were introduced in
+the [DKS paper] and [TAT paper], are methods for constructing/transforming
+neural networks to make them much easier to train. For example, these methods
+can be used in conjunction with K-FAC to train deep vanilla deep convnets
+(without skip connections or normalization layers) as fast as standard ResNets
+of the same depth.
 
 The package supports the JAX, PyTorch, and TensorFlow tensor programming
 frameworks.
@@ -23,16 +24,18 @@ from Github will be rejected. Instead, please email us if you find a bug.
 ## Usage
 
 For each of the supported tensor programming frameworks, there is a
-corresponding subpackage which handles the activation function transformations
-and weight initializations. (These are `dks.jax`, `dks.pytorch`, and
-`dks.tensorflow`.) It's up to the user to import these and use them
-appropriately within their model code. Activation functions are transformed by
-the function `get_transformed_activations()` in the module
+corresponding subpackage which handles the activation function transformations,
+weight initializations, and (optional) data preprocessing. (These are `dks.jax`,
+`dks.pytorch`, and `dks.tensorflow`.) It's up to the user to import these and
+use them appropriately within their model code. Activation functions are
+transformed by the function `get_transformed_activations()` in the module
 `activation_transform` of the appropriate subpackage. Sampling initial
 parameters is done using functions inside of the module
-`parameter_sampling_functions` of said subpackage. Note that in order to avoid
-having to import all of the tensor programming frameworks, the user is required
-to individually import whatever framework subpackage they want. e.g. `import
+`parameter_sampling_functions` of said subpackage. And data preprocessing is
+done using the function `per_location_normalization` inside of the module
+`data_preprocessing` of said subpackage. Note that in order to avoid having to
+import all of the tensor programming frameworks, the user is required to
+individually import whatever framework subpackage they want. e.g. `import
 dks.jax`. Meanwhile, `import dks` won't actually do anything.
 
 `get_transformed_activations()` requires the user to pass either the "maximal
@@ -52,9 +55,10 @@ weighted sums into "normalized sums" (which are weighted sums whose
 non-trainable weights have a sum of squares equal to 1). See the section titled
 "Summary of our method" of the [DKS paper] for more details.
 
-Note that this package doesn't currently include an implementation of
-Per-Location Normalization (PLN) data pre-processing. While not required for
-CIFAR or ImageNet, PLN could potentially be important for other datasets. Also
+Note that the data preprocessing method implemented, called Per-Location 
+Normalization (PLN), may not always be needed in practice, but we have observed
+certain situations where not using can lead to problems. (For example, training
+on datasets that contain all-zero pixels, such as CIFAR-10.) Also
 note that ReLUs are only partially supported by DKS, and unsupported by TAT, and
 so their use is *highly* discouraged. Instead, one should use Leaky ReLUs, which
 are fully supported by DKS, and work especially well with TAT.

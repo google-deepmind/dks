@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sampling functions for parameter initialization in DKS/TAT with JAX."""
+"""Parameter sampling functions for use with DKS/TAT in JAX."""
 
 import jax
 from jax.config import config as jax_config
@@ -46,10 +46,12 @@ def _uniform_orthogonal(key, shape, scale=1.0, axis=-1, dtype=None):
   norm_dst = jax.random.normal(key, matrix_shape, dtype)
 
   q_mat, r_mat = jnp.linalg.qr(norm_dst)
-  # Enforce Q is uniformly distributed
+
   q_mat *= jnp.sign(jnp.diag(r_mat))
+
   if n_rows < n_cols:
     q_mat = q_mat.T
+
   q_mat = jnp.reshape(q_mat, (n_rows,) + tuple(np.delete(shape, axis)))
   q_mat = jnp.moveaxis(q_mat, 0, axis)
 
@@ -60,7 +62,7 @@ def scaled_uniform_orthogonal(key, shape, scale=1.0, axis=-1, delta=True,
                               dtype=None):
   """Initializes fully-connected or conv weights using the SUO distribution.
 
-  Output is similar to that of hk.initializers.Orthogonal, except that it
+  Output is similar to that of haiku.initializers.Orthogonal, except that it
   supports Delta initializations, and sampled weights are rescaled by
   ``max(sqrt(out_dim / in_dim), 1)``, so that the layer preserves q values at
   initialization-time (assuming initial biases of zero).
@@ -70,7 +72,7 @@ def scaled_uniform_orthogonal(key, shape, scale=1.0, axis=-1, delta=True,
 
   Should be used with a zeros initializer for the bias parameters for DKS/TAT.
 
-  See "Parameter distributions" section of DKS paper
+  See the "Parameter distributions" section of DKS paper
   (https://arxiv.org/abs/2110.01765) for a discussion of the SUO distribution
   and Delta initializations.
 

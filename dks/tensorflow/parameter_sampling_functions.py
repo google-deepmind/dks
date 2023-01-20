@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sampling functions for parameter initialization in DKS/TAT with TF."""
+"""Parameter sampling functions for use with DKS/TAT in TensorFlow."""
 
 import numpy as np
 import tensorflow as tf
@@ -30,11 +30,13 @@ def _stateless_uniform_orthogonal(shape, seed, gain=1.0,
     raise ValueError("The tensor to initialize must be "
                      "at least two-dimensional. Received: "
                      f"shape={shape} of rank {len(shape)}.")
+
   # Flatten the input shape with the last dimension remaining
   # its original shape so it works for conv2d
   num_rows = 1
   for dim in shape[:-1]:
     num_rows *= dim
+
   num_cols = shape[-1]
   flat_shape = (max(num_cols, num_rows), min(num_cols, num_rows))
 
@@ -43,7 +45,7 @@ def _stateless_uniform_orthogonal(shape, seed, gain=1.0,
   # Compute the qr factorization
   q, r = tf.linalg.qr(a, full_matrices=False)
 
-  # Make Q uniform
+  # Make q uniform
   d = tf.linalg.tensor_diag_part(r)
   q *= tf.sign(d)
 
@@ -68,7 +70,7 @@ def stateless_scaled_uniform_orthogonal(
 
   Should be used with a zeros initializer for the bias parameters for DKS/TAT.
 
-  See "Parameter distributions" section of DKS paper
+  See the "Parameter distributions" section of DKS paper
   (https://arxiv.org/abs/2110.01765) for a discussion of the SUO distribution
   and Delta initializations.
 

@@ -16,4 +16,4 @@
 # Do not directly import this package; it won't do anything. Instead, import one
 # of the framework-specific subpackages.
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
