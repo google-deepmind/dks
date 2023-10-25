@@ -15,7 +15,7 @@
 """Parameter sampling functions for use with DKS/TAT in JAX."""
 
 import jax
-from jax.config import config as jax_config
+from jax import config as jax_config
 import jax.numpy as jnp
 import numpy as np
 
