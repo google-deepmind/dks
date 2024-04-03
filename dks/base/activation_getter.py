@@ -80,6 +80,8 @@ _ACTIVATION_TABLE = {
     "leaky_relu": _leaky_relu,
     "gelu": _gelu,
     "gelu_exact": _gelu_exact,
+    "sin": np.sin,
+    "cos": np.cos,
 }
 
 

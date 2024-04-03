@@ -16,6 +16,7 @@
 
 import itertools
 import os
+import sys
 
 from absl import logging
 
@@ -25,6 +26,8 @@ from dks.base.activation_getter import get_activation_function as _get_numpy_act
 import scipy.integrate as sp_int
 import scipy.optimize as sp_opt
 from scipy.special import roots_legendre
+
+
 
 # pylint: disable=g-import-not-at-top
 # This is a trick to achieve compatibility with multiple versions of SciPy:
@@ -75,17 +78,27 @@ def _precompute_or_load_roots(order):
 
     roots_cache_file = _ROOTS_CACHE_FILE.format(order)
 
-    if os.path.exists(roots_cache_file):
+    file_open = open
+    file_exists = os.path.exists
 
-      with open(roots_cache_file, "rb") as fhandle:
+
+    if file_exists(roots_cache_file):
+
+      logging.info("Roots cache file '%s' found, will use it.",
+                   roots_cache_file)
+
+      with file_open(roots_cache_file, "rb") as fhandle:
         _cached_roots_legendre.cache[order] = np.load(fhandle,
                                                       allow_pickle=False)
 
     else:
+      logging.info("Roots cache file '%s' was not found, so will generate it. "
+                   "This can take 10 to 20 minutes.", roots_cache_file)
+
       roots = roots_legendre(order)
       _cached_roots_legendre.cache[order] = roots
 
-      with open(roots_cache_file, "wb") as fhandle:
+      with file_open(roots_cache_file, "wb") as fhandle:
         np.save(fhandle, roots, allow_pickle=False)
 
 
@@ -337,6 +350,10 @@ def _solve_for_activation_params(
   if not sol.success:
     raise ValueError(f"Failed to find parameters for '{name}'!")
 
+  if name == "sin" or name == "cos":
+    params["input_shift"] = params["input_shift"] - 2*np.pi * (
+        params["input_shift"] // (2*np.pi))
+
   logging.info("Found parameters for '%s': %s", name, params)
 
   return params
@@ -434,10 +451,6 @@ def _get_activations_params(
     activation_names, method="DKS", dks_params=None, tat_params=None,
     max_slope_func=None, max_curv_func=None, subnet_max_func=None):
   """Get dict of optimized parameters for given named activation functions."""
-
-  if not isinstance(activation_names, (list, tuple)):
-    raise ValueError("activation_names argument must be a list or tuple of "
-                     "strings.")
 
   # Note that using dictionaries as defaults in the function def is bad, hence
   # we do this instead:
@@ -662,6 +675,8 @@ def get_transformed_activations(
     A dictionary mapping the activation function names to their corresponding
     transformed activation functions.
   """
+
+  activation_names = set(activation_names)
 
   if method == "untransformed":
     return {name: activation_getter(name) for name in activation_names}

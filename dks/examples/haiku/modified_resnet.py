@@ -237,6 +237,7 @@ class BlockV2(hk.Module):
     self.activation = activation
 
   def __call__(self, inputs, is_training, test_local_stats):
+
     x = shortcut = inputs
 
     for i, conv_i in enumerate(self.layers):
