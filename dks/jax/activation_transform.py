@@ -30,6 +30,8 @@ def _get_jax_activation_function(name):
     return lambda x: jax.nn.gelu(x, approximate=True)
   elif name == "gelu_exact":
     return lambda x: jax.nn.gelu(x, approximate=False)
+  elif hasattr(jnp, name):
+    return getattr(jnp, name)
   elif hasattr(jax.lax, name):
     return getattr(jax.lax, name)
   elif hasattr(jax.nn, name):
