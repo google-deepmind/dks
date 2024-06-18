@@ -16,7 +16,6 @@
 
 import itertools
 import os
-import sys
 
 from absl import logging
 
@@ -42,11 +41,16 @@ except ImportError:
 # standard starting points fail (which almost never happens).
 _RANDOM_SEED = 123
 
-_CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Feel free to change the path of this file if needed. This file should ideally
-# persist between experiments since it can take around 20 minutes to regenerate.
-_ROOTS_CACHE_FILE = os.path.join(_CURRENT_DIR, "roots_{}.npy")
+def _get_roots_cache_file(order):
+  """Returns the expected path to the roots cache file."""
+  # Feel free to change the path of this file if needed. This file should
+  # ideally persist between experiments since it can take around 20 minutes to
+  # regenerate.
+  current_dir = os.path.dirname(os.path.abspath(__file__))
+  filename = os.path.join(current_dir, f"roots_{order}.npy")
+  return filename
+
 
 _QUADRATURE_ORDER = 100000
 
@@ -76,7 +80,7 @@ def _precompute_or_load_roots(order):
 
   if order not in _cached_roots_legendre.cache:
 
-    roots_cache_file = _ROOTS_CACHE_FILE.format(order)
+    roots_cache_file = _get_roots_cache_file(order)
 
     file_open = open
     file_exists = os.path.exists
