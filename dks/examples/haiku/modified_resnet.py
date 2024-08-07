@@ -211,7 +211,7 @@ class BlockV2(hk.Module):
       bn_0 = hk.BatchNorm(name="batchnorm_0", **BN_CONFIG)
       bn_1 = hk.BatchNorm(name="batchnorm_1", **BN_CONFIG)
 
-      bn_layers = (bn_0, bn_1)
+      self.bn_layers = (bn_0, bn_1)
 
     if bottleneck:
 
@@ -229,9 +229,7 @@ class BlockV2(hk.Module):
       if use_batch_norm:
 
         bn_2 = hk.BatchNorm(name="batchnorm_2", **BN_CONFIG)
-        bn_layers += (bn_2,)
-
-        self.bn_layers = bn_layers
+        self.bn_layers += (bn_2,)
 
     self.layers = layers
     self.activation = activation
