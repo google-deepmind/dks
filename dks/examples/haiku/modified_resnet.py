@@ -25,10 +25,12 @@ import jax.numpy as jnp
 
 FloatStrOrBool = Union[str, float, bool]
 
+
+# TODO(jamesmartens): Making this controllable from the model constructor.
 BN_CONFIG = {
     "create_offset": True,
     "create_scale": True,
-    "decay_rate": 0.999,
+    "decay_rate": 0.99,
 }
 
 
