@@ -14,8 +14,9 @@
 
 """A "modified ResNet model" in Haiku with support for both DKS and TAT."""
 
+import inspect
 import math
-from typing import Any, Callable, Mapping, Optional, Sequence, Union
+from typing import Any, Callable, Mapping, Optional, Sequence, Type, Union
 
 from dks.jax import activation_transform
 from dks.jax import haiku_initializers
@@ -26,8 +27,7 @@ import jax.numpy as jnp
 FloatStrOrBool = Union[str, float, bool]
 
 
-# TODO(jamesmartens): Making this controllable from the model constructor.
-BN_CONFIG = {
+DEFAULT_BN_CONFIG = {
     "create_offset": True,
     "create_scale": True,
     "decay_rate": 0.99,
@@ -43,7 +43,8 @@ class BlockV1(hk.Module):
       stride: Union[int, Sequence[int]],
       use_projection: bool,
       bottleneck: bool,
-      use_batch_norm: bool,
+      norm_layers_ctor: Optional[Any],
+      should_use_bias: bool,
       activation: Callable[[jnp.ndarray], jnp.ndarray],
       shortcut_weight: Optional[float],
       w_init: Optional[Any],
@@ -53,7 +54,7 @@ class BlockV1(hk.Module):
     super().__init__(name=name)
 
     self.use_projection = use_projection
-    self.use_batch_norm = use_batch_norm
+    self.norm_layers_ctor = norm_layers_ctor
     self.shortcut_weight = shortcut_weight
 
     if self.use_projection and self.shortcut_weight != 0.0:
@@ -63,13 +64,12 @@ class BlockV1(hk.Module):
           kernel_shape=1,
           stride=stride,
           w_init=w_init,
-          with_bias=not use_batch_norm,
+          with_bias=should_use_bias,
           padding="SAME",
           name="shortcut_conv")
 
-      if use_batch_norm:
-        self.proj_batchnorm = hk.BatchNorm(
-            name="shortcut_batchnorm", **BN_CONFIG)
+      if norm_layers_ctor is not None:
+        self.proj_norm = norm_layers_ctor(name="shortcut_norm")
 
     channel_div = 4 if bottleneck else 1
 
@@ -78,7 +78,7 @@ class BlockV1(hk.Module):
         kernel_shape=1 if bottleneck else 3,
         stride=1 if bottleneck else stride,
         w_init=w_init,
-        with_bias=not use_batch_norm,
+        with_bias=should_use_bias,
         padding="SAME",
         name="conv_0")
 
@@ -87,18 +87,21 @@ class BlockV1(hk.Module):
         kernel_shape=3,
         stride=stride if bottleneck else 1,
         w_init=w_init,
-        with_bias=not use_batch_norm,
+        with_bias=should_use_bias,
         padding="SAME",
         name="conv_1")
 
     layers = (conv_0, conv_1)
 
-    if use_batch_norm:
+    if norm_layers_ctor is not None:
 
-      bn_0 = hk.BatchNorm(name="batchnorm_0", **BN_CONFIG)
-      bn_1 = hk.BatchNorm(name="batchnorm_1", **BN_CONFIG)
+      norm_0 = norm_layers_ctor(name="norm_0")
+      norm_1 = norm_layers_ctor(name="norm_1")
 
-      bn_layers = (bn_0, bn_1)
+      self.norm_layers = (norm_0, norm_1)
+
+    else:
+      self.norm_layers = None
 
     if bottleneck:
       conv_2 = hk.Conv2D(
@@ -106,16 +109,15 @@ class BlockV1(hk.Module):
           kernel_shape=1,
           stride=1,
           w_init=w_init,
-          with_bias=not use_batch_norm,
+          with_bias=should_use_bias,
           padding="SAME",
           name="conv_2")
 
       layers = layers + (conv_2,)
 
-      if use_batch_norm:
-        bn_2 = hk.BatchNorm(name="batchnorm_2", **BN_CONFIG)
-        bn_layers += (bn_2,)
-        self.bn_layers = bn_layers
+      if norm_layers_ctor:
+        norm_2 = norm_layers_ctor(name="norm_2")
+        self.norm_layers += (norm_2,)
 
     self.layers = layers
     self.activation = activation
@@ -128,15 +130,17 @@ class BlockV1(hk.Module):
 
       shortcut = self.proj_conv(shortcut)
 
-      if self.use_batch_norm:
-        shortcut = self.proj_batchnorm(shortcut, is_training, test_local_stats)
+      if self.norm_layers is not None:
+        shortcut = self.proj_norm(shortcut, is_training=is_training,
+                                  test_local_stats=test_local_stats)
 
     for i, conv_i in enumerate(self.layers):
 
       out = conv_i(out)
 
-      if self.use_batch_norm:
-        out = self.bn_layers[i](out, is_training, test_local_stats)
+      if self.norm_layers is not None:
+        out = self.norm_layers[i](out, is_training=is_training,
+                                  test_local_stats=test_local_stats)
 
       if i < len(self.layers) - 1:  # Don't apply activation on last layer
         out = self.activation(out)
@@ -162,7 +166,8 @@ class BlockV2(hk.Module):
       stride: Union[int, Sequence[int]],
       use_projection: bool,
       bottleneck: bool,
-      use_batch_norm: bool,
+      norm_layers_ctor: Optional[Any],
+      should_use_bias: bool,
       activation: Callable[[jnp.ndarray], jnp.ndarray],
       shortcut_weight: Optional[float],
       w_init: Optional[Any],
@@ -172,7 +177,7 @@ class BlockV2(hk.Module):
     super().__init__(name=name)
 
     self.use_projection = use_projection
-    self.use_batch_norm = use_batch_norm
+    self.norm_layers_ctor = norm_layers_ctor
     self.shortcut_weight = shortcut_weight
 
     if self.use_projection and self.shortcut_weight != 0.0:
@@ -182,7 +187,7 @@ class BlockV2(hk.Module):
           kernel_shape=1,
           stride=stride,
           w_init=w_init,
-          with_bias=not use_batch_norm,
+          with_bias=should_use_bias,
           padding="SAME",
           name="shortcut_conv")
 
@@ -193,7 +198,7 @@ class BlockV2(hk.Module):
         kernel_shape=1 if bottleneck else 3,
         stride=1 if bottleneck else stride,
         w_init=w_init,
-        with_bias=not use_batch_norm,
+        with_bias=should_use_bias,
         padding="SAME",
         name="conv_0")
 
@@ -202,18 +207,21 @@ class BlockV2(hk.Module):
         kernel_shape=3,
         stride=stride if bottleneck else 1,
         w_init=w_init,
-        with_bias=not use_batch_norm,
+        with_bias=should_use_bias,
         padding="SAME",
         name="conv_1")
 
     layers = (conv_0, conv_1)
 
-    if use_batch_norm:
+    if norm_layers_ctor is not None:
 
-      bn_0 = hk.BatchNorm(name="batchnorm_0", **BN_CONFIG)
-      bn_1 = hk.BatchNorm(name="batchnorm_1", **BN_CONFIG)
+      norm_0 = norm_layers_ctor(name="norm_0")
+      norm_1 = norm_layers_ctor(name="norm_1")
 
-      self.bn_layers = (bn_0, bn_1)
+      self.norm_layers = (norm_0, norm_1)
+
+    else:
+      self.norm_layers = None
 
     if bottleneck:
 
@@ -222,16 +230,16 @@ class BlockV2(hk.Module):
           kernel_shape=1,
           stride=1,
           w_init=w_init,
-          with_bias=not use_batch_norm,
+          with_bias=should_use_bias,
           padding="SAME",
           name="conv_2")
 
       layers = layers + (conv_2,)
 
-      if use_batch_norm:
+      if norm_layers_ctor is not None:
 
-        bn_2 = hk.BatchNorm(name="batchnorm_2", **BN_CONFIG)
-        self.bn_layers += (bn_2,)
+        norm_2 = norm_layers_ctor(name="norm_2")
+        self.norm_layers += (norm_2,)
 
     self.layers = layers
     self.activation = activation
@@ -242,8 +250,9 @@ class BlockV2(hk.Module):
 
     for i, conv_i in enumerate(self.layers):
 
-      if self.use_batch_norm:
-        x = self.bn_layers[i](x, is_training, test_local_stats)
+      if self.norm_layers is not None:
+        x = self.norm_layers[i](x, is_training=is_training,
+                                test_local_stats=test_local_stats)
 
       x = self.activation(x)
 
@@ -274,7 +283,8 @@ class BlockGroup(hk.Module):
       resnet_v2: bool,
       bottleneck: bool,
       use_projection: bool,
-      use_batch_norm: bool,
+      norm_layers_ctor: Optional[Any],
+      should_use_bias: bool,
       activation: Callable[[jnp.ndarray], jnp.ndarray],
       shortcut_weight: Optional[float],
       w_init: Optional[Any],
@@ -291,7 +301,8 @@ class BlockGroup(hk.Module):
               channels=channels,
               stride=(1 if i else stride),
               use_projection=(i == 0 and use_projection),
-              use_batch_norm=use_batch_norm,
+              norm_layers_ctor=norm_layers_ctor,
+              should_use_bias=should_use_bias,
               bottleneck=bottleneck,
               shortcut_weight=shortcut_weight,
               activation=activation,
@@ -361,7 +372,9 @@ class ModifiedResNet(hk.Module):
       num_classes: int,
       depth: int,
       resnet_v2: bool = True,
-      use_batch_norm: bool = False,
+      use_norm_layers: bool = False,
+      norm_layers_ctor: Optional[hk.Module] = None,
+      norm_layers_kwargs: Optional[Mapping[str, Any]] = None,
       shortcut_weight: Optional[float] = 0.0,
       activation_name: str = "softplus",
       w_init: Optional[Any] = haiku_initializers.ScaledUniformOrthogonal(
@@ -398,8 +411,13 @@ class ModifiedResNet(hk.Module):
       depth: The number of layers.
       resnet_v2: Whether to use the v2 ResNet implementation instead of v1.
         Defaults to ``True``.
-      use_batch_norm: Whether to use Batch Normalization (BN). Note that DKS/TAT
-        are not compatible with the use of BN. Defaults to ``False``.
+      use_norm_layers: Whether to use normalization. Note that DKS/TAT are not
+        compatible with the use of Batch Norm layers, but Layer Norm is fine.
+        Defaults to ``False``.
+      norm_layers_ctor: Haiku constructor to use for normalization layers (if
+        enabled). Defaults to ``None``, which uses ``hk.BatchNorm``.
+      norm_layers_kwargs: Keyword arguments to pass to the normalization layer
+        constructor. Defaults to ``None``, which uses the default BN config.
       shortcut_weight: The weighting factor of shortcut branch, which must be
         a float between 0 and 1, or None. If not None, the shortcut branch is
         multiplied by ``shortcut_weight``, and the residual branch is multiplied
@@ -433,23 +451,48 @@ class ModifiedResNet(hk.Module):
     """
     super().__init__(name=name)
 
+    if use_norm_layers:
+
+      norm_layers_ctor = norm_layers_ctor or hk.BatchNorm
+
+      if norm_layers_ctor == hk.BatchNorm:
+        should_use_bias = False
+        if norm_layers_kwargs is None:
+          norm_layers_kwargs = DEFAULT_BN_CONFIG
+      elif norm_layers_kwargs is not None:
+        should_use_bias = norm_layers_kwargs.get("create_offset", True)
+      else:
+        should_use_bias = True
+
+      if norm_layers_kwargs is None:
+        raise ValueError("Must specify 'norm_layers_kwargs' when using "
+                         "non-BN normalization layers.")
+
+      norm_layers_ctor_unwrapped = norm_layers_ctor
+      norm_layers_ctor = lambda *a, **k: _filter_kwargs(
+          norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))
+
+    else:
+      norm_layers_kwargs = None
+      should_use_bias = True
+      norm_layers_ctor = None
+
     if shortcut_weight is not None and (shortcut_weight > 1.0
                                         or shortcut_weight < 0.0):
       raise ValueError("Unsupported value for shortcut_weight.")
 
-    if (use_batch_norm and
-        (transformation_method == "DKS" or transformation_method == "TAT")):
-      raise ValueError("DKS and TAT are not compatible with the use of BN "
-                       "layers.")
+    if transformation_method in ("DKS", "TAT"):
 
-    if (shortcut_weight is None and
-        (transformation_method == "DKS" or transformation_method == "TAT")):
-      raise ValueError("Must specify a value for shortcut_weight when using "
-                       "DKS or TAT.")
+      if norm_layers_ctor == hk.BatchNorm:
+        raise ValueError("DKS and TAT are not compatible with the use of BN "
+                         "layers.")
+
+      if shortcut_weight is None:
+        raise ValueError("Must specify a value for shortcut_weight when using "
+                         "DKS or TAT.")
 
     self.depth = depth
     self.resnet_v2 = resnet_v2
-    self.use_batch_norm = use_batch_norm
     self.shortcut_weight = shortcut_weight
     self.activation_name = activation_name
     self.dropout_rate = dropout_rate
@@ -471,7 +514,7 @@ class ModifiedResNet(hk.Module):
     initial_conv_config.setdefault("output_channels", 64)
     initial_conv_config.setdefault("kernel_shape", 7)
     initial_conv_config.setdefault("stride", 2)
-    initial_conv_config.setdefault("with_bias", not use_batch_norm)
+    initial_conv_config.setdefault("with_bias", should_use_bias)
     initial_conv_config.setdefault("padding", "SAME")
     initial_conv_config.setdefault("name", "initial_conv")
     initial_conv_config.setdefault("w_init", w_init)
@@ -485,9 +528,10 @@ class ModifiedResNet(hk.Module):
 
     self.initial_conv = hk.Conv2D(**initial_conv_config)
 
-    if not self.resnet_v2 and use_batch_norm:
-      self.initial_batchnorm = hk.BatchNorm(
-          name="initial_batchnorm", **BN_CONFIG)
+    if not self.resnet_v2 and norm_layers_ctor is not None:
+      self.initial_norm = norm_layers_ctor(name="initial_norm")
+    else:
+      self.initial_norm = None
 
     self.block_groups = []
     strides = (1, 2, 2, 2)
@@ -499,15 +543,18 @@ class ModifiedResNet(hk.Module):
               stride=strides[i],
               resnet_v2=resnet_v2,
               bottleneck=bottleneck,
-              use_batch_norm=use_batch_norm,
+              norm_layers_ctor=norm_layers_ctor,
+              should_use_bias=should_use_bias,
               use_projection=use_projection[i],
               shortcut_weight=shortcut_weight,
               activation=self.activation,
               w_init=w_init,
               name="block_group_%d" % (i)))
 
-    if self.resnet_v2 and use_batch_norm:
-      self.final_batchnorm = hk.BatchNorm(name="final_batchnorm", **BN_CONFIG)
+    if self.resnet_v2 and norm_layers_ctor is not None:
+      self.final_norm = norm_layers_ctor(name="final_norm")
+    else:
+      self.final_norm = None
 
     self.logits = hk.Linear(num_classes, **logits_config)
 
@@ -518,8 +565,9 @@ class ModifiedResNet(hk.Module):
 
     if not self.resnet_v2:
 
-      if self.use_batch_norm:
-        out = self.initial_batchnorm(out, is_training, test_local_stats)
+      if self.initial_norm is not None:
+        out = self.initial_norm(out, is_training=is_training,
+                                test_local_stats=test_local_stats)
 
       out = self.activation(out)
 
@@ -530,8 +578,10 @@ class ModifiedResNet(hk.Module):
       out = block_group(out, is_training, test_local_stats)
 
     if self.resnet_v2:
-      if self.use_batch_norm:
-        out = self.final_batchnorm(out, is_training, test_local_stats)
+
+      if self.final_norm is not None:
+        out = self.final_norm(out, is_training=is_training,
+                              test_local_stats=test_local_stats)
 
       out = self.activation(out)
 
@@ -586,3 +636,41 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight, resnet_v2=True):
   x = r_fn(x)
 
   return max(x, res_branch_subnetwork)
+
+
+def _filter_kwargs(fn_or_class):
+  """Wraps a function or class to ignore over-specified arguments."""
+
+  method_fn = (fn_or_class.__init__ if isinstance(fn_or_class, Type) else
+               fn_or_class)
+
+  if isinstance(method_fn, hk.Module):
+    # Haiku wraps `__call__` and destroys the `argspec`. However, it does
+    # preserve the signature of the function.
+    fn_args = list(inspect.signature(method_fn.__call__).parameters.keys())
+  else:
+    fn_args = inspect.getfullargspec(method_fn).args
+
+  if fn_args and "self" == fn_args[0]:
+    fn_args = fn_args[1:]
+
+  def wrapper(*args, **kwargs):
+
+    common_kwargs = {}
+
+    if len(args) > len(fn_args):
+      raise ValueError("Too many positional arguments.")
+
+    for k, v in zip(fn_args, args):
+      common_kwargs[k] = v
+
+    for k, v in kwargs.items():
+      if k in common_kwargs:
+        raise ValueError(
+            "{} already specified as a positional argument".format(k))
+      if k in fn_args:
+        common_kwargs[k] = v
+
+    return fn_or_class(**common_kwargs)
+
+  return wrapper
