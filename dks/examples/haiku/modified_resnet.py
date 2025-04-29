@@ -373,7 +373,7 @@ class ModifiedResNet(hk.Module):
       depth: int,
       resnet_v2: bool = True,
       use_norm_layers: bool = False,
-      norm_layers_ctor: Optional[hk.Module] = None,
+      norm_layers_ctor: Optional[Type[hk.SupportsCall]] = None,
       norm_layers_kwargs: Optional[Mapping[str, Any]] = None,
       shortcut_weight: Optional[float] = 0.0,
       activation_name: str = "softplus",
@@ -393,7 +393,7 @@ class ModifiedResNet(hk.Module):
     skip connections (making it a "vanilla network"), initialize the weights
     with the SUO distribution, and use DKS to transform the activation functions
     (which are "softplus" by default). These behaviors, and the option to use
-    TAT, are controlled via the contructor arguments.
+    TAT, are controlled via the constructor arguments.
 
     This file was adapted from the original Haiku ResNet implementation:
     https://github.com/deepmind/dm-haiku/blob/main/haiku/_src/nets/resnet.py
@@ -459,8 +459,10 @@ class ModifiedResNet(hk.Module):
         should_use_bias = False
         if norm_layers_kwargs is None:
           norm_layers_kwargs = DEFAULT_BN_CONFIG
+
       elif norm_layers_kwargs is not None:
         should_use_bias = norm_layers_kwargs.get("create_offset", True)
+
       else:
         should_use_bias = True
 
@@ -470,10 +472,10 @@ class ModifiedResNet(hk.Module):
 
       norm_layers_ctor_unwrapped = norm_layers_ctor
       norm_layers_ctor = lambda *a, **k: _filter_kwargs(
-          norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))
+          norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))  # pytype: disable=wrong-keyword-args
 
     else:
-      norm_layers_kwargs = None
+      norm_layers_ctor_unwrapped = None
       should_use_bias = True
       norm_layers_ctor = None
 
@@ -483,7 +485,7 @@ class ModifiedResNet(hk.Module):
 
     if transformation_method in ("DKS", "TAT"):
 
-      if norm_layers_ctor == hk.BatchNorm:
+      if norm_layers_ctor_unwrapped == hk.BatchNorm:
         raise ValueError("DKS and TAT are not compatible with the use of BN "
                          "layers.")
 
