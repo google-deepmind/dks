@@ -8,4 +8,4 @@ dm-haiku==0.0.9
 jax==0.4.7
 jaxlib==0.4.7
 tensorflow==2.13.0
-torch==1.13.1
+torch==2.6.0
