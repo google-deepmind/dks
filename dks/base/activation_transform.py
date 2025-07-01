@@ -460,8 +460,15 @@ def _get_activations_params(
   # we do this instead:
   if dks_params is None:
     dks_params = {}
+  else:
+    # Make a copy and possibly convert from ConfigDict
+    dks_params = dict(dks_params)
+
   if tat_params is None:
     tat_params = {}
+  else:
+    # Make a copy and possibly convert from ConfigDict
+    tat_params = dict(tat_params)
 
   _verify_params_dict_and_set_defaults(
       dks_params, {"c_slope_1_target": 1.5, "local_q_slope_target": 1.0})
