@@ -117,7 +117,7 @@ class BlockV1(hk.Module):
 
       if norm_layers_ctor:
         norm_2 = norm_layers_ctor(name="norm_2")
-        self.norm_layers += (norm_2,)
+        self.norm_layers += (norm_2,)  # pyrefly: ignore[unsupported-operation]
 
     self.layers = layers
     self.activation = activation
@@ -239,7 +239,7 @@ class BlockV2(hk.Module):
       if norm_layers_ctor is not None:
 
         norm_2 = norm_layers_ctor(name="norm_2")
-        self.norm_layers += (norm_2,)
+        self.norm_layers += (norm_2,)  # pyrefly: ignore[unsupported-operation]
 
     self.layers = layers
     self.activation = activation
@@ -453,7 +453,7 @@ class ModifiedResNet(hk.Module):
 
     if use_norm_layers:
 
-      norm_layers_ctor = norm_layers_ctor or hk.BatchNorm
+      norm_layers_ctor = norm_layers_ctor or hk.BatchNorm  # pyrefly: ignore[bad-assignment]
 
       if norm_layers_ctor == hk.BatchNorm:
         should_use_bias = False
@@ -471,7 +471,7 @@ class ModifiedResNet(hk.Module):
                          "non-BN normalization layers.")
 
       norm_layers_ctor_unwrapped = norm_layers_ctor
-      norm_layers_ctor = lambda *a, **k: _filter_kwargs(
+      norm_layers_ctor = lambda *a, **k: _filter_kwargs(  # pyrefly: ignore[bad-assignment]
           norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))  # pytype: disable=wrong-keyword-args
 
     else:
@@ -519,7 +519,7 @@ class ModifiedResNet(hk.Module):
     initial_conv_config.setdefault("with_bias", should_use_bias)
     initial_conv_config.setdefault("padding", "SAME")
     initial_conv_config.setdefault("name", "initial_conv")
-    initial_conv_config.setdefault("w_init", w_init)
+    initial_conv_config.setdefault("w_init", w_init)  # pyrefly: ignore[no-matching-overload]
 
     act_dict = activation_transform.get_transformed_activations(
         [self.activation_name], method=transformation_method,
@@ -531,7 +531,7 @@ class ModifiedResNet(hk.Module):
     self.initial_conv = hk.Conv2D(**initial_conv_config)
 
     if not self.resnet_v2 and norm_layers_ctor is not None:
-      self.initial_norm = norm_layers_ctor(name="initial_norm")
+      self.initial_norm = norm_layers_ctor(name="initial_norm")  # pyrefly: ignore[unexpected-keyword]
     else:
       self.initial_norm = None
 
@@ -540,21 +540,21 @@ class ModifiedResNet(hk.Module):
     for i in range(4):
       self.block_groups.append(
           BlockGroup(
-              channels=channels_per_group[i],
-              num_blocks=blocks_per_group[i],
+              channels=channels_per_group[i],  # pyrefly: ignore[bad-index]
+              num_blocks=blocks_per_group[i],  # pyrefly: ignore[bad-index]
               stride=strides[i],
               resnet_v2=resnet_v2,
               bottleneck=bottleneck,
               norm_layers_ctor=norm_layers_ctor,
               should_use_bias=should_use_bias,
-              use_projection=use_projection[i],
+              use_projection=use_projection[i],  # pyrefly: ignore[bad-index]
               shortcut_weight=shortcut_weight,
               activation=self.activation,
               w_init=w_init,
               name="block_group_%d" % (i)))
 
     if self.resnet_v2 and norm_layers_ctor is not None:
-      self.final_norm = norm_layers_ctor(name="final_norm")
+      self.final_norm = norm_layers_ctor(name="final_norm")  # pyrefly: ignore[unexpected-keyword]
     else:
       self.final_norm = None
 
@@ -621,11 +621,11 @@ def subnet_max_func(x, r_fn, depth, shortcut_weight, resnet_v2=True):
   res_branch_subnetwork = res_fn(x)
 
   for i in range(4):
-    for j in range(blocks_per_group[i]):
+    for j in range(blocks_per_group[i]):  # pyrefly: ignore[bad-index]
 
       res_x = res_fn(x)
 
-      if j == 0 and use_projection[i] and resnet_v2:
+      if j == 0 and use_projection[i] and resnet_v2:  # pyrefly: ignore[bad-index]
         shortcut_x = r_fn(x)
       else:
         shortcut_x = x
@@ -649,7 +649,7 @@ def _filter_kwargs(fn_or_class):
   if isinstance(method_fn, hk.Module):
     # Haiku wraps `__call__` and destroys the `argspec`. However, it does
     # preserve the signature of the function.
-    fn_args = list(inspect.signature(method_fn.__call__).parameters.keys())
+    fn_args = list(inspect.signature(method_fn.__call__).parameters.keys())  # pyrefly: ignore[missing-attribute]
   else:
     fn_args = inspect.getfullargspec(method_fn).args
 
