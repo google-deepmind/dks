@@ -472,7 +472,7 @@ class ModifiedResNet(hk.Module):
 
       norm_layers_ctor_unwrapped = norm_layers_ctor
       norm_layers_ctor = lambda *a, **k: _filter_kwargs(  # pyrefly: ignore[bad-assignment]
-          norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))  # pytype: disable=wrong-keyword-args
+          norm_layers_ctor_unwrapped(*a, **k, **norm_layers_kwargs))  # pyrefly: ignore[not-callable]
 
     else:
       norm_layers_ctor_unwrapped = None
