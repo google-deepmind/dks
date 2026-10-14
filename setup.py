@@ -64,7 +64,7 @@ setup(
             os.path.join(_CURRENT_DIR, f'requirements_{key}.txt'))
         for key in {'jax', 'pytorch', 'tf', 'tests'}
     },
-    requires_python='>=3.8',
+    requires_python='>=3.11',
     include_package_data=True,
     zip_safe=False,
     # PyPI package information.
@@ -75,8 +75,7 @@ setup(
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.14',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries',
