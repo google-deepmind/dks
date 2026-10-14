@@ -21,7 +21,7 @@ from dks.pytorch import activation_transform as activation_transform_pytorch
 from dks.tensorflow import activation_transform as activation_transform_tf
 import jax.numpy as jnp
 import numpy as np
-from pkg_resources import parse_version
+from packaging import version
 import tensorflow as tf
 import torch
 import tree
@@ -179,7 +179,7 @@ class ActivationTransformTest(absltest.TestCase):
 
     # GELU support was added in PyTorch 1.2.0
     if (to_framework != torch.tensor
-        or parse_version(torch.__version__) >= parse_version("1.2.0")):
+        or version.parse(torch.__version__) >= version.parse("1.2.0")):
       check(("gelu", "gelu_exact"), "TAT",
             {"gelu": [0.6922557817568101, -0.491992384704867],
              "gelu_exact": [0.6922429517529013, -0.49198103131465193]})
